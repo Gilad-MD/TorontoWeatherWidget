@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Toronto Weather + Daylight — Compact</title>
+  <meta name="description" content="Compact dark-mode weather card for Toronto with live conditions, hourly precipitation %, and a daylight dial. Notion-ready, single file.">
+  <style>
+    :root{
+      --bg-1:#0b1020; --bg-2:#0b1228; --card:#0f1426e6; --text:#e5e7eb; --muted:#a1a1aa; --accent:#22d3ee;
+      --shadow: 0 10px 30px rgba(0,0,0,.5), inset 0 0 0 1px rgba(255,255,255,.06);
+      --radius:20px;
+    }
+    *{box-sizing:border-box} html,body{height:100%}
+    body{margin:0; font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Arial; color:var(--text);
+      background:radial-gradient(1100px 500px at 0% -10%, rgba(34,211,238,.08), transparent 60%),
+                 radial-gradient(700px 400px at 100% -20%, rgba(99,102,241,.08), transparent 50%),
+                 linear-gradient(180deg,var(--bg-1),var(--bg-2));
+      display:flex; align-items:center; justify-content:center; padding:18px;}
+    .wrap{width:100%; max-width:820px}
+    .card{position:relative; border-radius:var(--radius); background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.01)), var(--card); box-shadow:var(--shadow); padding:16px 18px}
+    header{display:flex; justify-content:space-between; align-items:center; gap:10px}
+    .title{display:flex; align-items:center; gap:8px; font-weight:800; letter-spacing:.2px; font-size:clamp(16px,2vw,20px)}
+    .dot{width:8px; height:8px; border-radius:999px; background:var(--accent); box-shadow:0 0 18px var(--accent)}
+    .badges{display:flex; gap:6px; flex-wrap:wrap}
+    .badge{border:1px solid rgba(255,255,255,.1); background:rgba(255,255,255,.04); color:var(--muted); padding:4px 8px; border-radius:999px; font-size:11px}
+    .btn{cursor:pointer}
+    .grid{display:grid; grid-template-columns: 1.1fr .9fr; gap:12px; margin-top:8px}
+    @media (max-width:780px){ .grid{grid-template-columns:1fr} }
+    .left,.right{border-radius:14px; padding:12px 12px; background:linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,0)); box-shadow:var(--shadow)}
+    .current{display:flex; align-items:center; gap:10px}
+    .icon{width:48px; height:48px}
+    .temp{font-variant-numeric:tabular-nums; font-weight:800; font-size:clamp(30px,6vw,48px); letter-spacing:-1px}
+    .unit{font-size:12px; color:var(--muted); font-weight:700}
+    .desc{color:var(--muted); font-size:12px}
+    .mini{display:grid; grid-template-columns: repeat(5, 1fr); gap:6px; margin-top:8px}
+    .chip{border-radius:12px; padding:6px 6px; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08); text-align:center}
+    .chip .t{font-size:11px; color:var(--muted)}
+    .chip .iconSmall{margin:2px 0}
+    .chip .row{display:flex; align-items:baseline; justify-content:center; gap:6px}
+    .chip .temp{font-size:14px; font-weight:700}
+    .chip .ppt{font-size:12px; color:var(--muted)}
+    .dial{display:flex; flex-direction:column; align-items:center}
+    .times{display:flex; justify-content:space-between; width:100%; margin-top:6px; font-size:11px; color:var(--muted)}
+    .sub{margin-top:6px; font-size:11px; color:var(--muted)}
+    svg{display:block}
+    .spacer{height:2px}
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <section class="card" role="group" aria-labelledby="heading">
+      <header>
+        <div class="title"><span class="dot" aria-hidden="true"></span><span id="heading">Toronto Weather</span></div>
+        <div class="badges">
+          <div class="badge" id="updated">—</div>
+          <div class="badge btn" id="toggleUnit" title="Toggle °C/°F">°C</div>
+        </div>
+      </header>
+
+      <div class="grid">
+        <div class="left">
+          <div class="current">
+            <div class="icon" id="bigIcon" aria-hidden="true"></div>
+            <div>
+              <div class="temp"><span id="temp">—</span><span class="unit" id="unit">°C</span></div>
+              <div class="desc" id="desc">Loading…</div>
+            </div>
+          </div>
+          <div class="mini" id="mini"></div>
+        </div>
+        <div class="right">
+          <div class="dial">
+            <svg id="dial" viewBox="0 0 200 110" width="100%" height="auto" role="img" aria-label="Daylight dial">
+              <defs>
+                <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#1e293b"/>
+                  <stop offset="100%" stop-color="#0b1228"/>
+                </linearGradient>
+                <linearGradient id="horizon" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="rgba(34,211,238,.25)"/>
+                  <stop offset="100%" stop-color="rgba(34,211,238,.0)"/>
+                </linearGradient>
+                <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+                  <feGaussianBlur stdDeviation="4" result="b"/>
+                  <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+                </filter>
+              </defs>
+              <rect x="0" y="0" width="200" height="110" fill="url(#sky)" rx="12"/>
+              <path id="arc" d="M16,92 A70,70 0 0 1 184,92" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="2"/>
+              <path id="dayFill" d="" fill="url(#horizon)"/>
+              <circle id="sun" cx="16" cy="92" r="5" fill="#fde68a" filter="url(#glow)"/>
+              <circle id="moon" cx="16" cy="92" r="4" fill="#e5e7eb" opacity="0.0"/>
+              <g id="ticks"></g>
+            </svg>
+            <div class="times"><span id="sunrise">—</span><span id="sunset">—</span></div>
+            <div class="sub" id="summary">—</div>
+          </div>
+        </div>
+      </div>
+      <div class="spacer"></div>
+    </section>
+  </main>
+
+  <script>
+  (function(){
+    const $ = s => document.querySelector(s);
+    const params = new URLSearchParams(location.search);
+    const safe = (s,f='')=>{try{ s=(s??'').toString().slice(0,120); return s.replace(/[<>]/g,'')||f }catch{ return f }};
+
+    let lat = parseFloat(params.get('lat')||'43.6532');
+    let lon = parseFloat(params.get('lon')||'-79.3832');
+    const city = safe(params.get('city'),'Toronto');
+    const accent = safe(params.get('accent'),''); if(accent) document.documentElement.style.setProperty('--accent',accent);
+    let unit = (params.get('unit')||'metric').toLowerCase(); // metric/imperial
+    const refreshMin = Math.max(2, parseInt(params.get('refresh')||'5'));
+
+    $('#heading').textContent = `${city} Weather`;
+    $('#unit').textContent = unit==='imperial' ? '°F':'°C';
+    $('#toggleUnit').textContent = unit==='imperial' ? '°F':'°C';
+
+    const tz = 'America/Toronto';
+
+    const WMO = {
+      0:['Clear','sun'], 1:['Mainly clear','sun'], 2:['Partly cloudy','cloud-sun'], 3:['Overcast','cloud'],
+      45:['Fog','fog'], 48:['Rime fog','fog'],
+      51:['Drizzle','drizzle'], 53:['Drizzle','drizzle'], 55:['Drizzle','drizzle'],
+      56:['Freezing drizzle','sleet'], 57:['Freezing drizzle','sleet'],
+      61:['Rain','rain'], 63:['Rain','rain'], 65:['Heavy rain','rain'],
+      66:['Freezing rain','sleet'], 67:['Freezing rain','sleet'],
+      71:['Snow','snow'], 73:['Snow','snow'], 75:['Heavy snow','snow'],
+      77:['Snow grains','snow'], 80:['Showers','rain'], 81:['Showers','rain'], 82:['Violent showers','rain'],
+      85:['Snow showers','snow'], 86:['Snow showers','snow'],
+      95:['Thunderstorm','storm'], 96:['Thunder + hail','storm'], 99:['Thunder + hail','storm']
+    };
+
+    function iconSVG(kind, size=48){
+      const stroke = 'rgba(255,255,255,.9)';
+      const fill = 'rgba(255,255,255,.15)';
+      const s = size; const c = (p)=>`stroke:${stroke};stroke-width:3;stroke-linecap:round;stroke-linejoin:round;fill:none`;
+      const sun = `<g><circle cx="24" cy="24" r="10" fill="#fde68a"/><g ${''}><line x1="24" y1="2" x2="24" y2="10" style="${c()}"/><line x1="24" y1="38" x2="24" y2="46" style="${c()}"/><line x1="2" y1="24" x2="10" y2="24" style="${c()}"/><line x1="38" y1="24" x2="46" y2="24" style="${c()}"/><line x1="8" y1="8" x2="13" y2="13" style="${c()}"/><line x1="35" y1="35" x2="40" y2="40" style="${c()}"/><line x1="8" y1="40" x2="13" y2="35" style="${c()}"/><line x1="35" y1="13" x2="40" y2="8" style="${c()}"/></g></g>`;
+      const cloud = `<g><ellipse cx="28" cy="30" rx="16" ry="9" fill="${fill}"/><ellipse cx="18" cy="31" rx="11" ry="8" fill="${fill}"/></g>`;
+      const rain = `${cloud}<g style="${c()}"><line x1="18" y1="40" x2="15" y2="48"/><line x1="28" y1="40" x2="25" y2="48"/><line x1="38" y1="40" x2="35" y2="48"/></g>`;
+      const drizzle = `${cloud}<g style="${c()}"><line x1="19" y1="40" x2="17" y2="45"/><line x1="28" y1="40" x2="26" y2="45"/><line x1="37" y1="40" x2="35" y2="45"/></g>`;
+      const fog = `<g>${cloud}<g style="${c()}"><line x1="14" y1="46" x2="40" y2="46"/><line x1="11" y1="50" x2="37" y2="50"/></g></g>`;
+      const snow = `${cloud}<g style="${c()}"><line x1="18" y1="40" x2="15" y2="48"/><line x1="18" y1="48" x2="15" y2="40"/><line x1="28" y1="40" x2="25" y2="48"/><line x1="28" y1="48" x2="25" y2="40"/><line x1="38" y1="40" x2="35" y2="48"/><line x1="38" y1="48" x2="35" y2="40"/></g>`;
+      const sleet = `${cloud}<g style="${c()}"><line x1="18" y1="40" x2="15" y2="48"/><line x1="28" y1="40" x2="25" y2="48"/><line x1="38" y1="40" x2="35" y2="48"/></g><g style="${c()}"><line x1="22" y1="40" x2="19" y2="45"/><line x1="32" y1="40" x2="29" y2="45"/></g>`;
+      const storm = `${cloud}<polyline points="22,40 28,40 24,48 33,48" style="${c()}"/>`;
+      const cloudSun = `${sun}${cloud}`;
+      const map = {sun,cloud,rain,drizzle,fog,snow,sleet,storm,'cloud-sun':cloudSun};
+      return `<svg width="${s}" height="${s}" viewBox="0 0 48 56" class="iconSmall" aria-hidden="true">${map[kind]||sun}</svg>`;
+    }
+
+    function kToUnitDisplay(kC){ return unit==='imperial' ? Math.round(kC*9/5+32) : Math.round(kC); }
+    function fmtHM(date){ return new Intl.DateTimeFormat('en-CA',{hour:'2-digit',minute:'2-digit',hour12:false,timeZone:tz}).format(date); }
+    function fmtDay(date){ return new Intl.DateTimeFormat('en-CA',{weekday:'short', month:'short', day:'numeric', timeZone:tz}).format(date); }
+    function setUpdated(ts){ $('#updated').textContent = `Updated ${new Intl.DateTimeFormat('en-CA',{hour:'numeric',minute:'2-digit', timeZone:tz}).format(ts)} ${city}`; }
+
+    // Robust Open‑Meteo timestamp parser → UTC instant (handles plain local strings)
+    function parseOM(str, offsetSeconds){
+      const hasTZ = /[Zz]|[+\-]\d{2}:\d{2}$/.test(str);
+      if(hasTZ) return new Date(str);
+      const [d, t] = str.split('T');
+      const [y,m,day] = d.split('-').map(Number);
+      const [hh,mm] = t.split(':').map(Number);
+      const localUTC = Date.UTC(y, m-1, day, hh, mm);
+      return new Date(localUTC - offsetSeconds*1000);
+    }
+    function labelFromLocalStr(str){ const m = /T(\d{2}:\d{2})/.exec(str); return m? m[1] : str; }
+    function nowUTC(){ return new Date(); }
+
+    function apiURL(){
+      const base = 'https://api.open-meteo.com/v1/forecast';
+      const params = new URLSearchParams({
+        latitude: lat, longitude: lon,
+        current: 'temperature_2m,apparent_temperature,weather_code,relative_humidity_2m,wind_speed_10m',
+        hourly: 'temperature_2m,precipitation_probability,weather_code',
+        daily: 'sunrise,sunset,uv_index_max',
+        timezone: tz
+      });
+      return `${base}?${params.toString()}`;
+    }
+
+    let cache = null;
+    async function fetchWeather(){
+      const res = await fetch(apiURL(), {cache:'no-store'});
+      const data = await res.json();
+      cache = data;
+      setUpdated(new Date());
+      render(data);
+    }
+
+    function kind(code){ const e = WMO[code]||['Weather','sun']; return e[1]; }
+    function text(code){ const e = WMO[code]||['Weather','sun']; return e[0]; }
+
+    function render(d){
+      const c = d.current;
+      document.getElementById('bigIcon').innerHTML = iconSVG(kind(c.weather_code),48);
+      document.getElementById('temp').textContent = kToUnitDisplay(c.temperature_2m);
+      document.getElementById('unit').textContent = unit==='imperial'?'°F':'°C';
+      document.getElementById('desc').textContent = `${text(c.weather_code)} • Wind ${Math.round(c.wind_speed_10m)} ${unit==='imperial'?'mph':'km/h'}`;
+
+      // Hourly chips (next 5 hours) with precipitation probability
+      const hs = d.hourly;
+      const timesUTC = hs.time.map(t=> parseOM(t, d.utc_offset_seconds));
+      const now = nowUTC();
+      let idx = timesUTC.findIndex(t=> t>=now); if(idx<0) idx=0;
+      const html = [];
+      for(let i=0;i<5;i++){ const j=Math.min(idx+i, hs.time.length-1);
+        const tUTC = timesUTC[j];
+        const tmp = kToUnitDisplay(hs.temperature_2m[j]);
+        const pp = hs.precipitation_probability[j];
+        const k = kind(hs.weather_code[j]);
+        html.push(`<div class="chip"><div class="t">${fmtHM(tUTC)}</div><div>${iconSVG(k,28)}</div><div class="row"><div class="temp">${tmp}°</div><div class="ppt">💧${pp??0}%</div></div></div>`);
+      }
+      document.getElementById('mini').innerHTML = html.join('');
+
+      updateDial(d);
+      document.getElementById('summary').textContent = `${fmtDay(now)} • UV max ${Math.round(d.daily.uv_index_max[0]??0)}`;
+    }
+
+    function updateDial(d){
+      const now = nowUTC();
+      const srUTC = parseOM(d.daily.sunrise[0], d.utc_offset_seconds);
+      const ssUTC = parseOM(d.daily.sunset[0], d.utc_offset_seconds);
+      // draw fill
+      const cy=92, r=70, startX=16, endX=184;
+      const dayPath = `M${startX},${cy} A${r},${r} 0 0 1 ${endX},${cy} L ${endX},${cy+2} L ${startX},${cy+2} Z`;
+      document.getElementById('dayFill').setAttribute('d', dayPath);
+      // fraction
+      let frac;
+      if(now < srUTC){ const lastSS = parseOM(d.daily.sunset[0], d.utc_offset_seconds); const span = srUTC - lastSS; frac = (now - lastSS)/span; showMoon(true); }
+      else if(now > ssUTC){ const nextSR = parseOM(d.daily.sunrise[1]||d.daily.sunrise[0], d.utc_offset_seconds); const span = nextSR - ssUTC; frac = (now - ssUTC)/span; showMoon(true); }
+      else { const span = ssUTC - srUTC; frac = (now - srUTC)/span; showMoon(false); }
+      frac = Math.min(1, Math.max(0, frac));
+      const x = 16 + 168*frac; const angle = Math.PI * (1 - frac); const y = cy - Math.sin(angle) * r;
+      const target = (now>=srUTC && now<=ssUTC) ? document.getElementById('sun') : document.getElementById('moon');
+      target.setAttribute('cx', x.toFixed(1)); target.setAttribute('cy', y.toFixed(1));
+      document.getElementById('sunrise').textContent = `Sunrise ${labelFromLocalStr(d.daily.sunrise[0])}`;
+      document.getElementById('sunset').textContent = `Sunset ${labelFromLocalStr(d.daily.sunset[0])}`;
+    }
+    function showMoon(f){ document.getElementById('moon').setAttribute('opacity', f? '0.9':'0.0'); document.getElementById('sun').setAttribute('opacity', f? '0.0':'1'); }
+
+    (function buildTicks(){ const g = document.getElementById('ticks'); g.innerHTML=''; for(let i=0;i<=6;i++){ const x = 16 + i*(168/6); const line = document.createElementNS('http://www.w3.org/2000/svg','line'); line.setAttribute('x1',x); line.setAttribute('y1',92); line.setAttribute('x2',x); line.setAttribute('y2',88); line.setAttribute('stroke','rgba(255,255,255,.25)'); line.setAttribute('stroke-width','1'); g.appendChild(line);} })();
+
+    // Continuous updates
+    fetchWeather();
+    setInterval(()=>{ fetchWeather().catch(()=>{}); }, refreshMin*60*1000);
+    setInterval(()=>{ if(cache) updateDial(cache); }, 60*1000);
+
+    document.getElementById('toggleUnit').addEventListener('click',()=>{ unit = unit==='metric'?'imperial':'metric'; if(cache) render(cache); document.getElementById('toggleUnit').textContent = unit==='imperial'?'°F':'°C'; });
+  })();
+  </script>
+</body>
+</html>
