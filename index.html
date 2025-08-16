@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="dark light" />
   <title>Toronto Weather — Compact</title>
   <meta name="description" content="Compact dark‑mode weather card for Toronto with hourly precipitation % and a much smaller daylight dial. Notion‑ready, single file.">
   <style>
@@ -45,6 +46,17 @@
     svg{display:block}
     .times{display:flex; justify-content:space-between; width:100%; margin-top:6px; font-size:11px; color:var(--muted)}
     .sub{margin-top:6px; font-size:11px; color:var(--muted)}
+
+    /* Embed-friendly tweaks */
+    body.embed{padding:0; background:transparent}
+    body.embed .wrap{max-width:100%}
+    body.embed .card{background:transparent; box-shadow:none; padding:8px}
+    body.embed .left, body.embed .right{box-shadow:none; background:transparent; padding:8px}
+    body.embed .grid{gap:8px}
+    body.embed .title{font-size:16px}
+    body.embed .mini{gap:4px}
+    body.embed .chip{padding:5px}
+    body.embed svg{max-height:140px}
   </style>
 </head>
 <body>
@@ -105,6 +117,8 @@
   (function(){
     const $ = s => document.querySelector(s);
     const params = new URLSearchParams(location.search);
+    const isEmbed = /^(1|true)$/i.test(params.get('embed')||'');
+    if(isEmbed){ document.body.classList.add('embed'); }
     const safe = (s,f='')=>{try{ s=(s??'').toString().slice(0,120); return s.replace(/[<>]/g,'')||f }catch{ return f }};
 
     // Defaults (Toronto)
